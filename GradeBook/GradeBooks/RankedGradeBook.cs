@@ -1,6 +1,7 @@
 ﻿using GradeBook.Enums;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace GradeBook.GradeBooks
@@ -9,9 +10,10 @@ namespace GradeBook.GradeBooks
     {
         private int minClassSize;
 
-        public RankedGradeBook(string name):base(name)
+        public RankedGradeBook(string name, bool isWeighted):base(name, isWeighted)
         {
             Type = GradeBookType.Ranked;
+            IsWeighted = isWeighted;
             minClassSize = 5;
         }
 
@@ -22,32 +24,23 @@ namespace GradeBook.GradeBooks
                 throw new InvalidOperationException();
             }
 
-            Students.Sort((s2, s1) => s1.AverageGrade.CompareTo(s2.AverageGrade));
+            var threshold = (int)Math.Ceiling(Students.Count * 0.2);
+            var grades = Students.OrderByDescending(e => e.AverageGrade).Select(e => e.AverageGrade).ToList();
 
-            int A_GradeStudents = (int)((Students.Count * 1.0) - (Students.Count * 0.8));
-            int B_GradeStudents_TopRange = (int)((Students.Count * 0.8) - (Students.Count * 0.6)) + A_GradeStudents;
-            int C_GradeStudents_TopRange = (int)((Students.Count * 0.6) - (Students.Count * 0.4)) + B_GradeStudents_TopRange;
-            int D_GradeStudents_TopRange = (int)((Students.Count * 0.4) - (Students.Count * 0.2)) + C_GradeStudents_TopRange;
-            int F_GradeStudents = (int)((Students.Count * 0.2)) + D_GradeStudents_TopRange;
-
-            if ((averageGrade <= Students[A_GradeStudents - 1].AverageGrade) &&
-                 (averageGrade > Students[B_GradeStudents_TopRange - 1].AverageGrade)) return 'A';
-
-            if ((averageGrade <= Students[B_GradeStudents_TopRange - 1].AverageGrade) &&
-                 (averageGrade > Students[C_GradeStudents_TopRange - 1].AverageGrade)) return 'B';
-
-            if ((averageGrade <= Students[C_GradeStudents_TopRange - 1].AverageGrade) &&
-                 (averageGrade > Students[D_GradeStudents_TopRange - 1].AverageGrade)) return 'C';
-
-            if ((averageGrade <= Students[D_GradeStudents_TopRange - 1].AverageGrade) &&
-                 (averageGrade > Students[F_GradeStudents - 1].AverageGrade)) return 'D';
-
+            if (averageGrade >= grades[threshold - 1])
+                return 'A';
+            if (averageGrade >= grades[(threshold * 2) - 1])
+                return 'B';
+            if (averageGrade >= grades[(threshold * 3) - 1])
+                return 'C';
+            if (averageGrade >= grades[(threshold * 4) - 1])
+                return 'D';
             return 'F';
         }
 
         public override void CalculateStatistics()
         {
-            if(Students.Count < minClassSize)
+            if(Students.Count < 5)
             {
                 Console.WriteLine("Ranked grading requires at least 5 students with grades in order to properly calculate a student's overall grade.");
                 return;
@@ -58,7 +51,7 @@ namespace GradeBook.GradeBooks
 
         public override void CalculateStudentStatistics(string name)
         {
-            if (Students.Count < minClassSize)
+            if (Students.Count < 5)
             {
                 Console.WriteLine("Ranked grading requires at least 5 students with grades in order to properly calculate a student's overall grade.");
                 return;
